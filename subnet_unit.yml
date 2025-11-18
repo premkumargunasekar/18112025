@@ -1,0 +1,52 @@
+---
+# subnet_unit.yml
+
+- name: Prepare req from CSV row
+  set_fact:
+    req: >-
+      {{
+        {
+          'RegionCode': request_row.RegionCode | default(request_row.RegionCode),
+          'Env': request_row.Env | default(request_row.Env),
+          'SubnetSize': (request_row.SubnetSize | default(24)) | int,
+          'Solution': request_row.Solution | default('unknown'),
+          'VPC': request_row.VPC | default('testvpc'),
+          'Comments': request_row.Comments | default('')
+        }
+      }}
+
+- name: Match Region+Env in Env.csv (on csv_server)
+  set_fact:
+    selected_block: ""
+  vars:
+    found_block: ""
+
+- name: Find matching block in env data
+  set_fact:
+    selected_block: "{{ item.Block }}"
+  loop: "{{ all_env_data }}"
+  loop_control:
+    loop_var: item
+  when: item.RegionCode == req.RegionCode and item.Env == req.Env
+
+- name: Fail if selected_block not set
+  fail:
+    msg: "No matching block for {{ req.RegionCode }}-{{ req.Env }} in Env.csv"
+  when: selected_block is not defined or selected_block == ''
+
+- name: Copy latest Subnet.csv locally to controller (optional — read-only cache)
+  delegate_to: "{{ csv_server }}"
+  fetch:
+    src: "{{ csv_path }}/Subnet.csv"
+    dest: "/tmp/ipam_subnet_cache_{{ inventory_hostname }}.csv"
+  ignore_errors: true
+
+- name: Run calc_next_subnet.py on csv_server
+  delegate_to: "{{ csv_server }}"
+  command: "{{ csv_path }}/calc_next_subnet.py {{ selected_block }} {{ req.SubnetSize }} {{ csv_path }}/Subnet.csv"
+  register: calc
+  changed_when: false
+
+- name: Set new_cidr fact
+  set_fact:
+    new_cidr: "{{ calc.stdout | trim }}"
