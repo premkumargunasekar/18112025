@@ -1,6 +1,6 @@
 ---
 - name: Diagnose Subnets.csv presence and permissions
-  hosts: ubuntu_csv_host
+  hosts: 192.168.134.128
   gather_facts: false
   vars:
     csv_path: /opt/ipam/Subnets.csv
