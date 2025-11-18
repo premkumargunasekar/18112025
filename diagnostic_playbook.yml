@@ -1,0 +1,60 @@
+---
+- name: Diagnose Subnets.csv presence and permissions
+  hosts: ubuntu_csv_host
+  gather_facts: false
+  vars:
+    csv_path: /opt/ipam/Subnets.csv
+  tasks:
+
+    - name: Show current user (SSH) on remote
+      ansible.builtin.command: whoami
+      register: whoami
+    - debug: var=whoami.stdout
+
+    - name: Show interpreter python (for info)
+      ansible.builtin.setup:
+        gather_subset:
+          - '!all'
+          - 'min'
+      register: sf
+    - debug:
+        msg: "Python interpreter: {{ sf.ansible_facts.discovered_interpreter_python | default('unknown') }}"
+
+    - name: List /opt/ipam directory (if exists)
+      ansible.builtin.command: ls -la /opt/ipam
+      register: list_ipam
+      ignore_errors: true
+    - debug:
+        var: list_ipam.stdout_lines
+
+    - name: Stat the CSV file
+      ansible.builtin.stat:
+        path: "{{ csv_path }}"
+      register: csv_stat
+
+    - name: Show stat result
+      debug:
+        var: csv_stat
+
+    - name: Fail with friendly message if file missing
+      ansible.builtin.fail:
+        msg: "CSV not found at {{ csv_path }}. Please ensure the file exists and is readable by the SSH user (or enable become)."
+      when: not csv_stat.stat.exists
+
+    - name: Read CSV (only if exists)
+      when: csv_stat.stat.exists
+      block:
+        - name: Read CSV file content (slurp)
+          ansible.builtin.slurp:
+            src: "{{ csv_path }}"
+          register: csv_raw
+
+        - name: Decode CSV content
+          ansible.builtin.set_fact:
+            csv_text: "{{ csv_raw.content | b64decode }}"
+
+        - name: Show first 10 lines of CSV
+          ansible.builtin.shell: "echo \"{{ csv_text }}\" | head -n 10"
+          register: csv_preview
+        - debug:
+            var: csv_preview.stdout_lines
