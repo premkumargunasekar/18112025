@@ -19,6 +19,7 @@
         state: directory
         mode: '0755'
       delegate_to: "{{ csv_server }}"
+      become: yes
 
     - name: Copy calc_next_subnet.py to remote CSV server
       copy:
