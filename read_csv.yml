@@ -7,7 +7,7 @@
 
     - name: Read CSV file content
       ansible.builtin.slurp:
-        src: /opt/ipam/Subnets.csv
+        src: /opt/ipam/Subnet.csv
       register: csv_raw
 
     - name: Decode CSV data
