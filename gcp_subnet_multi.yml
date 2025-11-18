@@ -1,0 +1,56 @@
+---
+- name: Multi-Subnet IPAM + GCP Provisioning (controller)
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars_files:
+  - env/extravars
+
+vars:
+  csv_server: "{{ csv_server_host }}"
+  csv_path: "{{ csv_remote_path }}"
+
+tasks:
+- name: Ensure remote csv dir exists on csv_server
+  file:
+  path: "{{ csv_path }}"
+  state: directory
+  mode: '0755'
+  delegate_to: "{{ csv_server }}"
+
+
+- name: Copy calc_next_subnet.py to remote CSV server
+  copy:
+  src: scripts/calc_next_subnet.py
+  dest: "{{ csv_path }}/calc_next_subnet.py"
+  mode: '0755'
+  delegate_to: "{{ csv_server }}"
+
+- name: Read Env.csv from remote server
+  community.general.read_csv:
+  path: "{{ csv_path }}/Env.csv"
+  register: env_csv
+  delegate_to: "{{ csv_server }}"
+
+- name: set_fact env_data
+  set_fact:
+  env_data: "{{ env_csv.list }}"
+
+- name: Read Subnet.csv from remote server
+  community.general.read_csv:
+  path: "{{ csv_path }}/Subnet.csv"
+  register: subnet_csv
+  delegate_to: "{{ csv_server }}"
+
+- name: set_fact subnet_data
+  set_fact:
+  subnet_data: "{{ subnet_csv.list }}"
+
+- name: include subnet_unit for each request row
+  include_tasks: subnet_unit.yml
+  loop: "{{ subnet_data }}"
+  loop_control:
+  loop_var: request_row
+  vars:
+  all_env_data: "{{ env_data }}"
+  all_subnet_data: "{{ subnet_data }}"
