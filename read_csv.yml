@@ -2,12 +2,16 @@
 - name: Read CSV from remote Ubuntu server
   hosts: 192.168.134.128
   gather_facts: false
+  become: yes           # <--- Enable sudo
+  become_method: sudo   # <--- Optional, but clear
+  vars:
+    csv_path: /opt/ipam/Subnet.csv
 
   tasks:
 
     - name: Read CSV file content
       ansible.builtin.slurp:
-        src: /opt/ipam/Subnet.csv
+        src: "{{ csv_path }}"
       register: csv_raw
 
     - name: Decode CSV data
