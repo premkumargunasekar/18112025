@@ -5,7 +5,7 @@
   #become: yes
   #become_method: sudo 
   vars:
-    csv_path: /opt/ipam/Subnets.csv
+    csv_path: /opt/ipam/Subnet.csv
   tasks:
 
     - name: Show current user (SSH) on remote
