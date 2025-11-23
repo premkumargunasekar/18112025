@@ -1,10 +1,10 @@
 ---
 - name: Simple CSV Reader
-  hosts: 192.168.134.128
+  hosts: 192.168.134.129
   gather_facts: false
 
   vars:
-    csv_path: /opt/ipam/Subnet.csv
+    csv_path: /opt/GCP/Subnet.csv
 
   tasks:
 
